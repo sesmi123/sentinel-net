@@ -8,7 +8,11 @@
 
 ### What problem does this project solve?
 
-During pandemic surges, healthcare systems face catastrophic resource constraints—limited beds, oxygen supplies, and ICU capacity—while patient volumes overwhelm emergency departments. Traditional triage methods are subjective, inconsistent across facilities, and fail to adapt to evolving disease patterns or new variants. This creates critical gaps in care delivery: some patients receive delayed treatment while resources remain underutilized elsewhere.
+During the COVID-19 pandemic, hospitals around the world were overwhelmed. In many regions, ICU beds ran out, oxygen cylinders were in short supply, and ventilators became critically scarce. A significant number of deaths occurred not only because of the virus itself, but because patients could not access timely care, oxygen support, or hospital beds when they needed them most.
+
+In such crises, accurate triaging becomes a matter of life and death. If high-risk patients are not identified early, they may deteriorate at home and arrive at hospitals too late. At the same time, admitting low-risk patients to already limited ICU beds can prevent critically ill patients from receiving the care they urgently need. Many of these tragic outcomes could have been mitigated with better early severity prediction and smarter resource allocation.
+
+This project aims to address that gap by developing a Federated Learning–powered triage system that can accurately predict patient risk based on initial symptoms and help hospitals allocate critical care resources more effectively—while preserving patient privacy and complying with healthcare data regulations.
 
 **SyncCare addresses these challenges through:**
 
