@@ -381,11 +381,11 @@ SyncCare Main Dashboard![alt text](image.png)
 
 ## 👥 Collaborators
 
-- **Sesmi** - [@Sesmi](https://github.com/teammate2)
-- **Karthik Ramesh** - [@Karthik](https://github.com/teammate3)
+- **Sesmi** - [@Sesmi](https://github.com/sesmi123)
+- **Karthik Ramesh** - [@Karthik](https://github.com/karthik807)
 - **Gangatharan** - [@Gangatharan](https://github.com/dharancool)
 
-- **Alex Joseph** - [@Alex](https://github.com/teammate4) 
+- **Alex Joseph** - [@Alex](https://github.com/alex710joseph) 
 
 
 
