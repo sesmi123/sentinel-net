@@ -1,55 +1,69 @@
-import os
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-
-import torch
-torch.set_num_threads(1)
+# client.py
 import flwr as fl
-from collections import OrderedDict
-from pytorchexample.task import TriageNet, train, test, load_local_data
+import torch
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
 
-# 1. Access the local data for this specific hospital
-# We pass the partition_id to load hospital_0.csv, hospital_1.csv, etc.
-def get_client_data(partition_id):
-    trainloader, testloader = load_local_data(f"./data/hospital_{partition_id}.csv")
-    return trainloader, testloader
+from data import load_data
+from task import TriageNet
 
-# 2. Define the Flower Client
-class AegisClient(fl.client.NumPyClient):
-    def __init__(self, model, trainloader, testloader):
-        self.model = model
-        self.trainloader = trainloader
-        self.testloader = testloader
+DEVICE = torch.device("cpu")
 
+train_x, train_y, val_x, val_y = load_data()
+
+train_loader = DataLoader(
+    TensorDataset(train_x, train_y), batch_size=16, shuffle=True
+)
+
+val_loader = DataLoader(
+    TensorDataset(val_x, val_y), batch_size=16
+)
+
+model = TriageNet(train_x.shape[1], len(set(train_y.tolist()))).to(DEVICE)
+
+class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
-        """Extracts model weights as a list of NumPy arrays."""
-        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
-
-    def set_parameters(self, parameters):
-        """Updates local model weights with global weights from the server."""
-        params_dict = zip(self.model.state_dict().keys(), parameters)
-        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-        self.model.load_state_dict(state_dict, strict=True)
+        return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
     def fit(self, parameters, config):
-        """The 'Training' phase: Train on hospital data and return updates."""
-        self.set_parameters(parameters)
-        train(self.model, self.trainloader, epochs=1)
-        return self.get_parameters(config={}), len(self.trainloader), {}
+        # set model parameters
+        params_dict = dict(zip(model.state_dict().keys(), map(torch.tensor, parameters)))
+        model.load_state_dict(params_dict, strict=True)
+
+        # train locally
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        model.train()
+        for data, label in train_loader:
+            optimizer.zero_grad()
+            out = model(data)
+            loss = F.cross_entropy(out, label)
+            loss.backward()
+            optimizer.step()
+
+        return [val.cpu().numpy() for _, val in model.state_dict().items()], len(train_loader), {}
 
     def evaluate(self, parameters, config):
-        """The 'Validation' phase: Check accuracy against local unseen patients."""
-        self.set_parameters(parameters)
-        loss, accuracy = test(self.model, self.testloader)
-        return float(loss), len(self.testloader), {"accuracy": float(accuracy)}
+        # set parameters
+        params_dict = dict(zip(model.state_dict().keys(), map(torch.tensor, parameters)))
+        model.load_state_dict(params_dict, strict=True)
 
-# 3. Entry point for the Flower Simulation or Deployment
-def client_fn(context):
-    # Retrieve the ID for this hospital (provided by Flower)
-    partition_id = context.node_config["partition-id"]
-    model = TriageNet()
-    trainloader, testloader = get_client_data(partition_id)
-    return AegisClient(model, trainloader, testloader).to_client()
+        model.eval()
+        correct = total = 0
+        loss = 0.0
 
-# Flower App instance
-app = fl.client.ClientApp(client_fn=client_fn)
+        with torch.no_grad():
+            for data, label in val_loader:
+                out = model(data)
+                loss += F.cross_entropy(out, label).item()
+                pred = out.argmax(dim=1)
+                correct += (pred == label).sum().item()
+                total += label.size(0)
+
+        return float(loss / total), total, {"accuracy": correct / total}
+
+# Run client
+fl.client.start_client(
+    server_address="127.0.0.1:8080", 
+    client=FLClient().to_client()
+)

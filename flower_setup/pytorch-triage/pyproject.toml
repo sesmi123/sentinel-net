@@ -32,9 +32,9 @@ learning-rate = 0.1
 batch-size = 32
 
 [tool.flwr.federations.local-simulation]
-options.num-supernodes = 3
+options.num-supernodes = 2
 # Set num-cpus high (e.g., 8 or 12) to force clients to run one-by-one
-options.backend-config = { "client-resources" = { "num-cpus" = 8, "num-gpus" = 0.0 } }
+options.backend-config = { "client-resources" = { "num-cpus" = 2, "num-gpus" = 0.0 } }
 
 [tool.flwr.federations]
 default = "local-simulation"
