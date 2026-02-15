@@ -25,7 +25,7 @@ This project aims to address that gap by developing a Federated Learning–power
 
 2. **Real-Time Resource Optimization**: Forecasts bed occupancy, oxygen consumption, and ICU capacity needs across the next 24-48 hours, allowing hospitals to redistribute resources dynamically.
 
-3. **Privacy-Preserving Global Intelligence**: Implements federated learning so hospitals worldwide can collaboratively improve predictive models without sharing sensitive patient data—each institution keeps data locally while benefiting from collective learning.
+3. **Privacy-Preserving Global Intelligence**: Implements federated learning so hospitals worldwide can collaboratively improve predictive models without sharing sensitive patient data; each institution keeps data locally while benefiting from collective learning.
 
 4. **Standardized Clinical Decision Support**: Provides consistent, evidence-based triage recommendations that eliminate subjective variability between clinicians and facilities.
 
@@ -34,7 +34,7 @@ This project aims to address that gap by developing a Federated Learning–power
 **Impact Metrics:**
 -  Reduces triage decision time by **30%** (from ~3 minutes to <1 minute per patient)
 -  Improves resource utilization efficiency by **25%** through predictive allocation
--  Achieves **93.6% accuracy** in deterioration prediction—significantly outperforming traditional rule-based systems (60-70%)
+-  Achieves **93.6% accuracy** in deterioration prediction, significantly outperforming traditional rule-based systems (60-70%)
 -  Enables equitable care by standardizing risk assessment across diverse patient populations
 
 ---
