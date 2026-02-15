@@ -1,6 +1,8 @@
-# SyncCare
+# PULSE
 
 *A federated AI platform that enables hospitals worldwide to collaboratively optimize resource allocation during pandemics without sharing patient data.*
+
+*PULSE is acronym for Pandemic Unified Learning System for Emergencies*
 
 ---
 
@@ -14,7 +16,7 @@ In such crises, accurate triaging becomes a matter of life and death. If high-ri
 
 This project aims to address that gap by developing a Federated Learning–powered triage system that can accurately predict patient risk based on initial symptoms and help hospitals allocate critical care resources more effectively—while preserving patient privacy and complying with healthcare data regulations.
 
-**SyncCare addresses these challenges through:**
+**PULSE addresses these challenges through:**
 
 1. **Intelligent Patient Risk Prediction**: Uses deep learning to predict which patients will deteriorate within 24-72 hours, enabling proactive resource allocation before critical events occurs.
 
@@ -36,12 +38,15 @@ This project aims to address that gap by developing a Federated Learning–power
 
 ### Did you use any interesting libraries or services?
 
-**Core Machine Learning & Deep Learning:**
+**Machine Learning:**
 
 - **PyTorch (2.10.0)** - Deep learning framework for neural network development
   - Built custom 4-layer neural network (TriageNet: 128-64-32-16 architecture)
   - Implemented BatchNormalization and Dropout layers for regularization
   - Achieved 93.6% test accuracy on medical triage classification
+
+- **Flower (1.26.0)** - Framwork for building Federated AI systems
+  - Flower was used to achieve federated training on 2 hospitals
 
 - **Scikit-learn (1.8.0)** - Machine learning utilities and preprocessing
   - `StandardScaler` for feature normalization
@@ -230,8 +235,8 @@ We developed a **comprehensive clinical decision support system** with three int
 
 #### Step 1: Clone Repository
 ```bash
-git clone https://github.com/your-username/synccare.git
-cd synccare
+git clone https://github.com/your-username/PULSE.git
+cd PULSE
 ```
 
 #### Step 2: Install Dependencies
@@ -358,7 +363,7 @@ python3 train_model.py
 ## 📸 Screenshots
 
 ### Main Application Interface
-SyncCare Main Dashboard![alt text](image.png)
+PULSE Main Dashboard![alt text](image.png)
 
 
 
