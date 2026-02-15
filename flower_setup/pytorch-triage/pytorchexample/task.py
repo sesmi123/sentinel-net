@@ -33,13 +33,26 @@ def set_parameters(net, parameters):
 
 # 4. Local Training Logic
 def train(net, trainloader, epochs):
+    device = torch.device("cpu") # Force CPU to avoid CUDA initialization crashes
+    net.to(device)
+    
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=0.001)
     net.train()
+    
     for _ in range(epochs):
         for images, labels in trainloader:
-            optimizer.zero_grad()
-            criterion(net(images), labels).backward()
+            images, labels = images.to(device), labels.to(device)
+            
+            # 1. Use set_to_none=True to fully clear memory
+            optimizer.zero_grad(set_to_none=True) 
+            
+            # 2. Separate the forward pass for clarity and memory management
+            outputs = net(images)
+            loss = criterion(outputs, labels)
+            
+            # 3. Backward pass
+            loss.backward()
             optimizer.step()
 
 # 5. Local Evaluation Logic

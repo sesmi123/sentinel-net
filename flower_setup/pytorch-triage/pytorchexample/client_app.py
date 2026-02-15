@@ -1,4 +1,9 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
 import torch
+torch.set_num_threads(1)
 import flwr as fl
 from collections import OrderedDict
 from pytorchexample.task import TriageNet, train, test, load_local_data
