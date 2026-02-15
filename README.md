@@ -14,7 +14,7 @@ During the COVID-19 pandemic, hospitals around the world were overwhelmed. In ma
 
 In such crises, accurate triaging becomes a matter of life and death. If high-risk patients are not identified early, they may deteriorate at home and arrive at hospitals too late. At the same time, admitting low-risk patients to already limited ICU beds can prevent critically ill patients from receiving the care they urgently need. Many of these tragic outcomes could have been mitigated with better early severity prediction and smarter resource allocation.
 
-This project aims to address that gap by developing a Federated Learning–powered triage system that can accurately predict patient risk based on initial symptoms and help hospitals allocate critical care resources more effectively—while preserving patient privacy and complying with healthcare data regulations.
+This project aims to address that gap by developing a Federated Learning–powered triage system that can accurately predict patient risk based on initial symptoms and help hospitals allocate critical care resources more effectively while preserving patient privacy and complying with healthcare data regulations.
 
 **PULSE addresses these challenges through:**
 
@@ -223,7 +223,7 @@ We developed a **comprehensive clinical decision support system** with three int
 
 ---
 
-## 🛠️ Set Up Instructions
+## Set Up Instructions
 
 ### Prerequisites
 - **Python 3.11+** (tested on Python 3.14)
@@ -376,7 +376,7 @@ PULSE Main Dashboard![alt text](image.png)
 
 ---
 
-### 🎥 Demo Video
+### Demo Video
 **Watch 2-Minute Demo**: [YouTube Link](https://youtube.com/your-demo-video) *(Coming Soon)*
 
 **Key Features Demonstrated:**
