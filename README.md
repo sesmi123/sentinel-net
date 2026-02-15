@@ -16,6 +16,9 @@ In such crises, accurate triaging becomes a matter of life and death. If high-ri
 
 This project aims to address that gap by developing a Federated Learning–powered triage system that can accurately predict patient risk based on initial symptoms and help hospitals allocate critical care resources more effectively while preserving patient privacy and complying with healthcare data regulations.
 
+### Architecture
+![alt text](images/architecture.png)
+
 **PULSE addresses these challenges through:**
 
 1. **Intelligent Patient Risk Prediction**: Uses deep learning to predict which patients will deteriorate within 24-72 hours, enabling proactive resource allocation before critical events occurs.
@@ -363,14 +366,14 @@ python3 train_model.py
 ## 📸 Screenshots
 
 ### Main Application Interface
-PULSE Main Dashboard![alt text](image.png)
+PULSE Main Dashboard![alt text](images/image.png)
 
 
 
 ---
 
 ### Critical Patient Prediction
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 ---
 
