@@ -8,36 +8,47 @@ import joblib
 from collections import OrderedDict
 import plotly.graph_objects as go
 import plotly.express as px
+from task import TriageNet
 
-# Simple model class that matches the trained weights
-class TriageNet(nn.Module):
-    def __init__(self, input_dim, num_classes):
-        super(TriageNet, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 64),
-            nn.ReLU(),
-            nn.Linear(64, num_classes),
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-# Load the encoder and labels
+# Load the encoder and original labels
 enc = joblib.load("triage_encoder.joblib")
-labels = joblib.load("label_mapping.joblib")
+original_labels = joblib.load("label_mapping.joblib")
+
+# Define the mapping from model output (0,1,2,3) to triage levels
+URGENCY_MAPPING = {
+    0: "Low",
+    1: "Medium", 
+    2: "High",
+    3: "Critical"
+}
+
+URGENCY_DESCRIPTIONS = {
+    "Low": "Non-urgent cases, stable condition",
+    "Medium": "Requires attention but not immediately life-threatening",
+    "High": "Serious condition, rapid intervention required",
+    "Critical": "Life-threatening condition, immediate care needed"
+}
 
 def load_model():
     input_dim = enc.get_feature_names_out().shape[0]
-    num_classes = len(labels)
+    num_classes = len(original_labels)
     
     model = TriageNet(input_dim, num_classes)
-    weights = np.load("final_model_weights.npz")
-    params_dict = zip(model.state_dict().keys(), [torch.tensor(v) for v in weights.values()])
-    state_dict = OrderedDict(params_dict)
     
-    model.load_state_dict(state_dict)
-    model.eval()
-    return model
+    try:
+        weights = np.load("final_model_weights.npz")
+        params_dict = zip(model.state_dict().keys(), [torch.tensor(v) for v in weights.values()])
+        state_dict = OrderedDict(params_dict)
+        
+        model.load_state_dict(state_dict)
+        model.eval()
+        return model
+    except Exception as e:
+        st.error(f"Model loading error: {str(e)}")
+        st.write("Expected keys:", list(model.state_dict().keys()))
+        if 'weights' in locals():
+            st.write("Loaded keys:", list(weights.keys()))
+        raise
 
 model = load_model()
 
@@ -105,7 +116,9 @@ with col2:
             probabilities = F.softmax(output, dim=1).squeeze()
             confidence_scores = probabilities.numpy()
             prediction = torch.argmax(output, dim=1).item()
-            result_label = labels[prediction]
+            
+            # Map numeric prediction to urgency level
+            result_label = URGENCY_MAPPING[prediction]
             confidence = confidence_scores[prediction] * 100
         
         # Display prediction with confidence
@@ -114,14 +127,14 @@ with col2:
         # Color coding based on urgency
         color_map = {
             "Critical": "🔴",
-            "Urgent": "🟠", 
-            "Semi-Urgent": "🟡",
-            "Non-Urgent": "🟢",
-            "Emergency": "🔴"
+            "High": "🟠", 
+            "Medium": "🟡",
+            "Low": "🟢"
         }
         icon = color_map.get(result_label, "⚪")
         
-        st.markdown(f"### {icon} **{result_label}**")
+        st.markdown(f"### {icon} **{result_label}** Priority")
+        st.write(f"*{URGENCY_DESCRIPTIONS[result_label]}*")
         st.metric("Confidence Score", f"{confidence:.1f}%")
         
         # Confidence interpretation
@@ -132,10 +145,11 @@ with col2:
         else:
             st.error("❌ Low confidence - Manual assessment strongly recommended")
         
-        # Confidence distribution chart
+        # Confidence distribution chart - map all predictions to urgency levels
         st.subheader("📊 Confidence Distribution")
+        urgency_labels = [URGENCY_MAPPING[i] for i in range(len(confidence_scores))]
         conf_df = pd.DataFrame({
-            'Triage Level': labels,
+            'Triage Level': urgency_labels,
             'Probability': confidence_scores * 100
         }).sort_values('Probability', ascending=True)
         
@@ -194,19 +208,19 @@ with col2:
                 "💉 Start vital monitoring and IV access",
                 "📞 Alert emergency response team"
             ],
-            "Urgent": [
+            "High": [
                 "⏱️ Assessment within 15 minutes",
                 "🛏️ Assign to high-priority bed",
                 "📊 Order stat labs and imaging as needed",
                 "👨‍⚕️ Notify attending physician"
             ],
-            "Semi-Urgent": [
+            "Medium": [
                 "⏰ Assessment within 30-60 minutes",
                 "🪑 Assign to standard waiting area",
                 "📋 Complete intake documentation",
                 "🩺 Monitor vital signs periodically"
             ],
-            "Non-Urgent": [
+            "Low": [
                 "⏳ Assessment within 1-2 hours",
                 "🪑 Standard waiting room assignment",
                 "📝 Standard intake process",
@@ -214,7 +228,7 @@ with col2:
             ]
         }
         
-        actions = recommendations.get(result_label, recommendations["Non-Urgent"])
+        actions = recommendations.get(result_label, recommendations["Low"])
         for action in actions:
             st.write(action)
         
@@ -228,10 +242,10 @@ with st.sidebar:
     This AI triage system uses federated learning to predict patient urgency while maintaining privacy.
     
     **Triage Levels:**
-    - 🔴 **Critical/Emergency**: Life-threatening, immediate care
-    - 🟠 **Urgent**: Serious condition, rapid assessment
-    - 🟡 **Semi-Urgent**: Stable but needs attention
-    - 🟢 **Non-Urgent**: Minor issues, can wait
+    - 🔴 **Critical**: Life-threatening, immediate care needed
+    - 🟠 **High**: Serious condition, rapid intervention required
+    - 🟡 **Medium**: Requires attention but not immediately life-threatening
+    - 🟢 **Low**: Non-urgent, stable condition
     
     **Confidence Scores:**
     - ≥80%: High confidence
@@ -241,5 +255,9 @@ with st.sidebar:
     
     st.header("📈 Model Info")
     st.metric("Input Features", len(enc.get_feature_names_out()))
-    st.metric("Triage Categories", len(labels))
-    st.write(f"**Categories**: {', '.join(str(label) for label in labels)}")
+    st.metric("Triage Categories", len(original_labels))
+    
+    # Display the mapping
+    st.write("**Urgency Level Mapping:**")
+    for key, value in URGENCY_MAPPING.items():
+        st.write(f"• {key} → {value}")
