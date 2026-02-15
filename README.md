@@ -312,7 +312,7 @@ Body Temperature: 39.5°C
 Pain Level: 9/10
 Chronic Disease Count: 3
 Previous ER Visits: 2
-Respiratory Effort: 4
+Respiratory Effort: 2
 
 Expected Result: Level 3 (Critical) with 70-80% confidence
 Alert: "CRITICAL: Immediate medical attention required. Alert emergency team."
