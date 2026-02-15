@@ -6,7 +6,7 @@ from pytorchexample.task import TriageNet, train, test, load_local_data
 # 1. Access the local data for this specific hospital
 # We pass the partition_id to load hospital_0.csv, hospital_1.csv, etc.
 def get_client_data(partition_id):
-    trainloader, testloader = load_local_data(f"hospital_{partition_id}.csv")
+    trainloader, testloader = load_local_data(f"./data/hospital_{partition_id}.csv")
     return trainloader, testloader
 
 # 2. Define the Flower Client

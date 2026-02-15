@@ -11,5 +11,6 @@ flwr login supergrid
 pip install -U "flwr[simulation]"
 flwr new @flwrlabs/quickstart-pytorch
 pip install -e .
-flwr run .
-
+pip install scikit-learn numpy pandas torch
+flwr run . --num-supernodes 3
+flwr run . --run-config "num-supernodes=3"

@@ -1,3 +1,4 @@
+import flwr as fl
 from flwr.server import ServerApp, ServerConfig
 from flwr.server.strategy import FedAvg
 from pytorchexample.task import TriageNet, get_parameters
@@ -10,7 +11,7 @@ def weighted_average(metrics):
     examples = [num_examples for num_examples, _ in metrics]
     return {"accuracy": sum(accuracies) / sum(examples)}
 
-# 2. Define the Global Strategy
+# 2. Define the Global Strategy8
 # This is the "brain" that averages the math from hospitals
 strategy = FedAvg(
     fraction_fit=1.0,             # Use 100% of available hospitals for training
