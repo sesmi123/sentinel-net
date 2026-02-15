@@ -376,8 +376,8 @@ PULSE Main Dashboard![alt text](image.png)
 
 ---
 
-### Demo Video
-**Watch 2-Minute Demo**: [YouTube Link](https://youtube.com/your-demo-video) *(Coming Soon)*
+### 🎥 Demo Video
+**Watch 2-Minute Demo**: https://drive.google.com/file/d/1NCCEWFm2AymxLjPGUiLryYXgKYqHyK1v/view?usp=sharing
 
 **Key Features Demonstrated:**
 - Real-time patient data entry
