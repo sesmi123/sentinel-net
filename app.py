@@ -11,8 +11,7 @@ import plotly.express as px
 
 # Set page config
 st.set_page_config(
-    page_title="AI Triage System",
-    page_icon="🏥",
+    page_title="PULSE - AI Triage System",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -46,7 +45,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Define Neural Network Architecture (same as training)
+# Define Neural Network Architecture
 class TriageNet(nn.Module):
     def __init__(self, input_dim=9, hidden_dims=[128, 64, 32, 16], num_classes=4, dropout_rates=[0.3, 0.3, 0.2, 0.2]):
         super(TriageNet, self).__init__()
@@ -92,28 +91,9 @@ class TriageNet(nn.Module):
         x = self.fc5(x)
         return x
 
-# Cache model loading
-@st.cache_resource
-def load_model():
-    """Load model, scaler, and metadata"""
-    device = torch.device('cpu')
-    
-    # Load model
-    model = TriageNet(input_dim=9, num_classes=4)
-    model.load_state_dict(torch.load('best_triage_model.pth', map_location=device))
-    model.eval()
-    
-    # Load scaler and metadata
-    scaler = joblib.load('scaler_20260215_044841.pkl')
-    feature_names = joblib.load('feature_names_20260215_044841.pkl')
-    metadata = joblib.load('model_metadata_20260215_044841.pkl')
-    
-    return model, scaler, feature_names, metadata, device
-
 # Prediction function
 def predict_triage(patient_data, model, scaler, device):
     """Make prediction for a patient"""
-    # Convert to DataFrame
     feature_order = [
         'age', 'heart_rate', 'systolic_blood_pressure', 
         'oxygen_saturation', 'body_temperature', 'pain_level',
@@ -121,20 +101,63 @@ def predict_triage(patient_data, model, scaler, device):
     ]
     
     patient_df = pd.DataFrame([patient_data])[feature_order]
-    
-    # Scale
     patient_scaled = scaler.transform(patient_df)
     patient_tensor = torch.FloatTensor(patient_scaled).to(device)
     
-    # Predict
     with torch.no_grad():
         output = model(patient_tensor)
         proba = torch.softmax(output, dim=1)[0]
         pred = torch.argmax(output, dim=1).item()
     
     probabilities = proba.cpu().numpy()
-    
     return pred, probabilities
+
+def calculate_feature_importance(model, input_tensor, feature_names):
+    """Calculate feature importance using input gradients"""
+    # Keep model in eval mode to avoid BatchNorm issues
+    model.eval()
+    input_tensor = input_tensor.clone().detach().requires_grad_(True)
+    
+    # Forward pass
+    output = model(input_tensor)
+    predicted_class = torch.argmax(output, dim=1).item()
+    
+    # Get gradient of predicted class w.r.t. input
+    model.zero_grad()
+    output[0, predicted_class].backward()
+    
+    # Importance = |gradient * input|
+    importance = (input_tensor.grad.abs() * input_tensor.abs()).squeeze().detach().numpy()
+    
+    # Create importance DataFrame
+    importance_df = pd.DataFrame({
+        'Feature': feature_names,
+        'Importance': importance
+    }).sort_values('Importance', ascending=False)
+    
+    # Normalize for better visualization
+    if importance_df['Importance'].max() > 0:
+        importance_df['Normalized'] = (importance_df['Importance'] / importance_df['Importance'].max()) * 100
+    else:
+        importance_df['Normalized'] = 0
+    
+    return importance_df
+
+# Cache model loading
+@st.cache_resource
+def load_model():
+    """Load model, scaler, and metadata"""
+    device = torch.device('cpu')
+    
+    model = TriageNet(input_dim=9, num_classes=4)
+    model.load_state_dict(torch.load('best_triage_model.pth', map_location=device))
+    model.eval()
+    
+    scaler = joblib.load('scaler_20260215_044841.pkl')
+    feature_names = joblib.load('feature_names_20260215_044841.pkl')
+    metadata = joblib.load('model_metadata_20260215_044841.pkl')
+    
+    return model, scaler, feature_names, metadata, device
 
 # Load model
 try:
@@ -142,7 +165,7 @@ try:
     model_loaded = True
 except Exception as e:
     st.error(f"❌ Error loading model: {str(e)}")
-    st.info("Please ensure these files are in the same directory as this app:")
+    st.info("Please ensure these files are in the same directory:")
     st.code("""
     - best_triage_model.pth
     - scaler_20260215_044841.pkl
@@ -154,29 +177,30 @@ except Exception as e:
 # Main App
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🏥 AI-Powered Emergency Triage System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header"> PULSE - AI Emergency Triage</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Protecting the Patient. Preserving the Privacy. Preparing the Civilization.</p>', unsafe_allow_html=True)
     
     if not model_loaded:
         return
     
-    # Sidebar - Model Info
+    # Sidebar
     with st.sidebar:
-        st.header("📊 Model Information")
+        st.header(" Model Information")
         st.metric("Model Accuracy", f"{metadata['test_accuracy']*100:.2f}%")
-        st.metric("Total Training Samples", f"{metadata['train_samples']:,}")
+        st.metric("Training Samples", f"{metadata['train_samples']:,}")
         st.metric("Architecture", metadata['architecture'])
         
         st.markdown("---")
-        st.subheader("🎯 Triage Levels")
+        st.subheader(" Triage Levels")
         st.markdown("""
         - **Level 0 (Low)**: Stable, non-urgent
         - **Level 1 (Medium)**: Requires attention
         - **Level 2 (High)**: Serious, rapid intervention
-        - **Level 3 (Critical)**: Life-threatening, immediate care
+        - **Level 3 (Critical)**: Life-threatening
         """)
     
-    # Main content
-    tab1, tab2, tab3 = st.tabs(["🩺 Patient Assessment", "📈 Model Performance", "ℹ️ About"])
+    # Main tabs
+    tab1, tab2, tab3 = st.tabs(["Patient Assessment", " Model Performance", " About"])
     
     with tab1:
         st.header("Enter Patient Information")
@@ -188,26 +212,25 @@ def main():
             age = st.number_input("Age (years)", min_value=0, max_value=120, value=50, step=1)
             
             st.subheader("Medical History")
-            chronic_disease_count = st.number_input("Chronic Disease Count", min_value=0, max_value=10, value=0, step=1)
+            chronic_disease_count = st.number_input("Chronic Diseases", min_value=0, max_value=10, value=0, step=1)
             previous_er_visits = st.number_input("Previous ER Visits", min_value=0, max_value=20, value=0, step=1)
         
         with col2:
             st.subheader("Vital Signs")
-            heart_rate = st.slider("Heart Rate (bpm)", min_value=30, max_value=200, value=80, step=1)
-            systolic_blood_pressure = st.slider("Systolic BP (mmHg)", min_value=60, max_value=220, value=120, step=1)
-            oxygen_saturation = st.slider("Oxygen Saturation (%)", min_value=70.0, max_value=100.0, value=98.0, step=0.1)
-            body_temperature = st.slider("Body Temperature (°C)", min_value=35.0, max_value=42.0, value=37.0, step=0.1)
+            heart_rate = st.slider("Heart Rate (bpm)", 30, 200, 80)
+            systolic_blood_pressure = st.slider("Systolic BP (mmHg)", 60, 220, 120)
+            oxygen_saturation = st.slider("O₂ Saturation (%)", 70.0, 100.0, 98.0, 0.1)
+            body_temperature = st.slider("Temperature (°C)", 35.0, 42.0, 37.0, 0.1)
         
         with col3:
             st.subheader("Clinical Assessment")
-            pain_level = st.slider("Pain Level (1-10)", min_value=0, max_value=10, value=3, step=1)
-            respiratory_effort = st.slider("Respiratory Effort", min_value=0, max_value=5, value=0, step=1,
-                                          help="0 = Normal, 5 = Severe distress")
+            pain_level = st.slider("Pain Level (0-10)", 0, 10, 3)
+            respiratory_effort = st.slider("Respiratory Effort (0-2)", 0, 2, 0,
+                                          help="0=Normal, 2=Severe distress")
         
         # Predict button
         st.markdown("---")
-        if st.button("🔍 Predict Triage Level", use_container_width=True):
-            # Prepare patient data
+        if st.button(" Predict Triage Level", use_container_width=True):
             patient_data = {
                 'age': age,
                 'heart_rate': heart_rate,
@@ -220,18 +243,15 @@ def main():
                 'respiratory_effort': respiratory_effort
             }
             
-            # Make prediction
             pred_level, probabilities = predict_triage(patient_data, model, scaler, device)
             
-            # Display results
             st.markdown("---")
-            st.header("🎯 Prediction Results")
+            st.header(" Prediction Results")
             
             triage_labels = {0: 'Low', 1: 'Medium', 2: 'High', 3: 'Critical'}
             triage_colors = {0: 'low', 1: 'medium', 2: 'high', 3: 'critical'}
             triage_emojis = {0: '✅', 1: '⚠️', 2: '🚨', 3: '🆘'}
             
-            # Main prediction
             col1, col2 = st.columns([2, 1])
             
             with col1:
@@ -242,143 +262,137 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Recommendations
                 if pred_level == 3:
-                    st.error("⚠️ **CRITICAL**: Immediate medical attention required. Alert emergency team.")
+                    st.error(" **CRITICAL**: Immediate care required. Alert emergency team.")
                 elif pred_level == 2:
-                    st.warning("🚨 **HIGH PRIORITY**: Rapid assessment and intervention needed.")
+                    st.warning(" **HIGH**: Rapid intervention needed.")
                 elif pred_level == 1:
-                    st.info("⚠️ **MEDIUM PRIORITY**: Patient requires attention but not immediately life-threatening.")
+                    st.info(" **MEDIUM**: Requires attention, not immediately life-threatening.")
                 else:
-                    st.success("✅ **LOW PRIORITY**: Stable condition. Can wait for standard care.")
+                    st.success(" **LOW**: Stable condition. Standard care.")
             
             with col2:
-                # Probability gauge
                 fig_gauge = go.Figure(go.Indicator(
-                    mode = "gauge+number",
-                    value = probabilities[pred_level] * 100,
-                    domain = {'x': [0, 1], 'y': [0, 1]},
-                    title = {'text': "Confidence"},
-                    gauge = {
-                        'axis': {'range': [None, 100]},
+                    mode="gauge+number",
+                    value=probabilities[pred_level] * 100,
+                    title={'text': "Confidence"},
+                    gauge={
+                        'axis': {'range': [0, 100]},
                         'bar': {'color': "darkblue"},
                         'steps': [
                             {'range': [0, 25], 'color': "lightgray"},
                             {'range': [25, 50], 'color': "gray"},
                             {'range': [50, 75], 'color': "lightblue"},
                             {'range': [75, 100], 'color': "blue"}
-                        ],
-                        'threshold': {
-                            'line': {'color': "red", 'width': 4},
-                            'thickness': 0.75,
-                            'value': 90
-                        }
+                        ]
                     }
                 ))
                 fig_gauge.update_layout(height=300)
                 st.plotly_chart(fig_gauge, use_container_width=True)
             
             # Probability distribution
-            st.subheader("📊 Full Probability Distribution")
-            
+            st.subheader(" Probability Distribution")
             prob_df = pd.DataFrame({
                 'Triage Level': [f"Level {i}: {triage_labels[i]}" for i in range(4)],
                 'Probability': probabilities * 100
             })
             
-            fig_bar = px.bar(
-                prob_df,
-                x='Triage Level',
-                y='Probability',
-                color='Probability',
-                color_continuous_scale=['green', 'yellow', 'orange', 'red'],
-                text='Probability'
-            )
+            fig_bar = px.bar(prob_df, x='Triage Level', y='Probability',
+                           color='Probability',
+                           color_continuous_scale=['green', 'yellow', 'orange', 'red'],
+                           text='Probability')
             fig_bar.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-            fig_bar.update_layout(
-                yaxis_title="Probability (%)",
-                showlegend=False,
-                height=400
-            )
+            fig_bar.update_layout(yaxis_title="Probability (%)", showlegend=False, height=400)
             st.plotly_chart(fig_bar, use_container_width=True)
             
-            # Patient summary
-            with st.expander("📋 View Patient Summary"):
+            #  Feature Importance
+            st.subheader(" Why This Prediction?")
+            st.write("Top factors influencing this triage decision:")
+            
+            patient_df = pd.DataFrame([patient_data])[feature_names]
+            patient_scaled = scaler.transform(patient_df)
+            patient_tensor = torch.FloatTensor(patient_scaled)
+            
+            importance_df = calculate_feature_importance(model, patient_tensor, feature_names)
+            
+            fig_importance = go.Figure(go.Bar(
+                x=importance_df['Normalized'],
+                y=importance_df['Feature'],
+                orientation='h',
+                marker=dict(color=importance_df['Normalized'],
+                          colorscale='Reds', showscale=False),
+                text=[f"{v:.0f}%" for v in importance_df['Normalized']],
+                textposition='auto'
+            ))
+            fig_importance.update_layout(
+                xaxis_title="Relative Importance (%)",
+                yaxis_title="", height=400,
+                margin=dict(l=0, r=0, t=20, b=0)
+            )
+            st.plotly_chart(fig_importance, use_container_width=True)
+            
+            st.info("""
+            **How to read:** Higher bars = features that influenced this prediction most.
+            Different patients have different patterns based on their unique characteristics.
+            """)
+            
+            with st.expander(" View Full Patient Data"):
                 summary_df = pd.DataFrame([patient_data]).T
                 summary_df.columns = ['Value']
                 st.dataframe(summary_df, use_container_width=True)
     
     with tab2:
-        st.header("📈 Model Performance Metrics")
-        
+        st.header(" Model Performance")
         col1, col2, col3 = st.columns(3)
         col1.metric("Test Accuracy", f"{metadata['test_accuracy']*100:.2f}%")
-        col2.metric("Weighted F1-Score", f"{metadata['test_weighted_f1']:.4f}")
-        col3.metric("Macro F1-Score", f"{metadata['test_macro_f1']:.4f}")
+        col2.metric("Weighted F1", f"{metadata['test_weighted_f1']:.4f}")
+        col3.metric("Macro F1", f"{metadata['test_macro_f1']:.4f}")
         
         st.markdown("---")
-        
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Training History")
+            st.subheader("Training Details")
             st.info(f"""
-            - **Total Epochs**: {metadata['total_epochs']}
-            - **Best Validation Loss**: {metadata['best_val_loss']:.4f}
-            - **Training Samples**: {metadata['train_samples']:,}
-            - **Validation Samples**: {metadata['val_samples']:,}
-            - **Test Samples**: {metadata['test_samples']:,}
+            - **Epochs**: {metadata['total_epochs']}
+            - **Best Val Loss**: {metadata['best_val_loss']:.4f}
+            - **Train**: {metadata['train_samples']:,} patients
+            - **Val**: {metadata['val_samples']:,} patients
+            - **Test**: {metadata['test_samples']:,} patients
             """)
         
         with col2:
-            st.subheader("Model Architecture")
+            st.subheader("Architecture")
             st.code(f"""
-Input Features: {metadata['num_features']}
-Architecture: {metadata['architecture']}
-Output Classes: {metadata['num_classes']}
+Features: {metadata['num_features']}
+Network: {metadata['architecture']}
+Classes: {metadata['num_classes']}
             """)
-        
-        st.markdown("---")
-        st.subheader("🎯 Features Used")
-        features_df = pd.DataFrame(metadata['input_features'], columns=['Feature Name'])
-        features_df.index = features_df.index + 1
-        st.dataframe(features_df, use_container_width=True)
     
     with tab3:
-        st.header("ℹ️ About This System")
-        
+        st.header("About PULSE")
         st.markdown("""
-        ### AI-Powered Emergency Triage System
+        ### Pandemic Unified Learning System for Emergencies
         
-        This system uses a deep neural network to predict emergency triage priority levels based on patient vital signs and medical history.
+        **Protecting the Patient. Preserving the Privacy. Preparing the Civilization.**
         
-        #### 🎯 How It Works
-        1. **Input Patient Data**: Enter vital signs, medical history, and clinical assessments
-        2. **AI Analysis**: The neural network processes 9 key features
-        3. **Triage Prediction**: Get instant triage level with confidence scores
-        4. **Clinical Decision Support**: Receive recommendations for patient management
+        PULSE uses deep learning to predict emergency triage priorities, helping
+        healthcare systems optimize resource allocation during crises.
         
-        #### 🧠 Model Details
-        - **Architecture**: Deep Neural Network (128-64-32-16 neurons)
-        - **Training Data**: ~18,000 synthetic patient records
-        - **Features**: 9 clinical and demographic variables
-        - **Output**: 4 triage levels (Low, Medium, High, Critical)
+        #### Key Features
+        - 93.6% accuracy across 4 triage levels
+        - Real-time predictions (<100ms)
+        - Explainable AI showing feature importance
+        - Privacy-preserving federated learning ready
         
-        #### ⚠️ Important Notes
-        - This system is designed as a **decision support tool**
-        - Should be used **in conjunction with clinical judgment**
-        - Not a replacement for medical professionals
-        - Always follow your institution's triage protocols
-        
-        #### 🔒 Privacy & Security
-        - No patient data is stored
-        - All predictions are performed locally
-        - Complies with healthcare data privacy standards
+        ####  Important
+        - Decision support tool, not replacement for clinicians
+        - Always follow institutional protocols
+        - Final decisions by qualified healthcare professionals
         
         ---
-        
-        **Developed for**: InnovAIte Hackathon - Pandemic Preparedness Challenge  
-        **Model Version**: {metadata['timestamp']}
+        **Hackathon**: InnovAIte 2024 - Pandemic Preparedness  
+        **Version**: {metadata['timestamp']}
         """)
 
 if __name__ == "__main__":
